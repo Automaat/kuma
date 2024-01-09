@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("PipeListenerConfigurer", func() {
-	It("", func() {
+	It("should generate proper Envoy config", func() {
 		// when
 		listener, err := NewListenerBuilder(envoy.APIV3, "test:listener").
 			Configure(PipeListener("test.sock")).
