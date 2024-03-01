@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"html"
 	"net"
 	"net/http"
@@ -18,6 +20,8 @@ import (
 
 	"github.com/kumahq/kuma/test/server/types"
 )
+
+var logger = testServerLog.WithName("health-check")
 
 func newEchoHTTPCmd() *cobra.Command {
 	counters := newCounters()
@@ -42,6 +46,22 @@ func newEchoHTTPCmd() *cobra.Command {
 			}
 			sdkmetric.NewMeterProvider(sdkmetric.WithReader(promExporter))
 			promHandler := promhttp.Handler()
+
+			exporter, err := otlpmetricgrpc.New(
+				context.Background(),
+				otlpmetricgrpc.WithEndpointURL("http://otel-collector.observability.svc:4317"),
+				otlpmetricgrpc.WithInsecure(),
+			)
+			if err != nil {
+				return err
+			}
+
+			sdkmetric.NewMeterProvider(
+				sdkmetric.WithReader(sdkmetric.NewPeriodicReader(
+					exporter, sdkmetric.WithInterval(5*time.Second),
+				)),
+			)
+			logger.Info("Otel collector started")
 
 			http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 				headers := request.Header

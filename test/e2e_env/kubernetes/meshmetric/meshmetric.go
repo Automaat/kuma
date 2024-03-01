@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -320,12 +321,12 @@ func MeshMetric() {
 		Expect(kubernetes.Cluster.DeleteMesh(secondaryMesh)).To(Succeed())
 	})
 
-	It("Basic MeshMetric policy exposes Envoy metrics on correct port", func() {
+	FIt("Basic MeshMetric policy exposes Envoy metrics on correct port", func() {
 		// given
 		Expect(kubernetes.Cluster.Install(BasicMeshMetricForMesh("mesh-policy", mainMesh))).To(Succeed())
 		podIp, err := PodIPOfApp(kubernetes.Cluster, "test-server-0", namespace)
 		Expect(err).ToNot(HaveOccurred())
-
+		time.Sleep(3 * time.Hour)
 		// then
 		Eventually(func(g Gomega) {
 			stdout, _, err := client.CollectResponse(

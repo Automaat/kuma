@@ -35,7 +35,7 @@ func NewRootCmd() *cobra.Command {
 
 	cmd.AddCommand(newHealthCheckCmd())
 	cmd.AddCommand(newEchoHTTPCmd())
-	cmd.AddCommand(newGRPCCmd())
+	// cmd.AddCommand(newGRPCCmd())
 	return cmd
 }
 

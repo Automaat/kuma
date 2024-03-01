@@ -39,3 +39,19 @@ func (oc *OpenTelemetryConfigurer) ConfigureListener() (envoy_common.NamedResour
 		)).
 		Build()
 }
+
+func (oc *OpenTelemetryConfigurer) ConfigureListenerTest() (envoy_common.NamedResource, error) {
+	return envoy_listeners.NewListenerBuilder(oc.ApiVersion, oc.ListenerName).
+		Configure(envoy_listeners.PipeListener(oc.SocketName)).
+		Configure(envoy_listeners.FilterChain(
+			envoy_listeners.NewFilterChainBuilder(oc.ApiVersion, envoy_common.AnonymousResource).
+				Configure(envoy_listeners.StaticEndpoints(oc.ListenerName, []*envoy_common.StaticEndpointPath{
+					{
+						ClusterName: oc.ClusterName,
+						Path:        "/",
+					},
+				})).
+				Configure(envoy_listeners.GrpcStats()),
+		)).
+		Build()
+}
