@@ -1,6 +1,7 @@
 package kubernetes_test
 
 import (
+	"github.com/kumahq/kuma/test/e2e_env/kubernetes/namespaced_policies"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -81,6 +82,7 @@ var (
 	_ = Describe("ExternalName Services", externalname_services.ExternalNameServices, Ordered)
 	_ = Describe("Virtual Outbound", virtualoutbound.VirtualOutbound, Ordered)
 	_ = Describe("Kong Ingress Controller", kic.KICKubernetes, Ordered)
+	_ = FDescribe("Namespaced policies", namespaced_policies.NamespacedPolicies, Ordered)
 	_ = Describe("MeshTrafficPermission API", meshtrafficpermission.API, Ordered)
 	_ = Describe("MeshRateLimit API", meshratelimit.API, Ordered)
 	_ = Describe("MeshTimeout API", meshtimeout.MeshTimeout, Ordered)

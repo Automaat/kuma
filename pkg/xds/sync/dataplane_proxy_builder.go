@@ -25,9 +25,10 @@ import (
 )
 
 type DataplaneProxyBuilder struct {
-	Zone          string
-	APIVersion    core_xds.APIVersion
-	IncludeShadow bool
+	Zone            string
+	APIVersion      core_xds.APIVersion
+	IncludeShadow   bool
+	SystemNamespace string
 }
 
 func (p *DataplaneProxyBuilder) Build(ctx context.Context, key core_model.ResourceKey, meshContext xds_context.MeshContext) (*core_xds.Proxy, error) {
@@ -179,6 +180,7 @@ func (p *DataplaneProxyBuilder) matchPolicies(meshContext xds_context.MeshContex
 	if p.IncludeShadow {
 		opts = append(opts, core_plugins.IncludeShadow())
 	}
+	opts = append(opts, core_plugins.SystemNamespace(p.SystemNamespace))
 	for _, p := range core_plugins.Plugins().PolicyPlugins(ordered.Policies) {
 		res, err := p.Plugin.MatchedPolicies(dataplane, resources, opts...)
 		if err != nil {

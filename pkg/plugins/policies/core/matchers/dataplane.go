@@ -3,6 +3,7 @@ package matchers
 import (
 	"errors"
 	"fmt"
+	"github.com/kumahq/kuma/pkg/core"
 	"slices"
 	"sort"
 
@@ -17,6 +18,8 @@ import (
 	xds_context "github.com/kumahq/kuma/pkg/xds/context"
 	xds_topology "github.com/kumahq/kuma/pkg/xds/topology"
 )
+
+var log = core.Log.WithName("TEST_NAMESPACE")
 
 func PolicyMatches(resource core_model.Resource, dpp *core_mesh.DataplaneResource, referencableResources xds_context.Resources) (bool, error) {
 	var gateway *core_mesh.MeshGatewayResource
@@ -77,10 +80,10 @@ func MatchedPolicies(
 		}
 	}
 
-	sort.Sort(ByTargetRef(dpPolicies))
+	sort.Sort(ByTargetRef{resources: dpPolicies, dppNamespace: dpp.Meta.GetLabels()[core_model.K8sNamespaceComponent], systemNamespace: mpOpts.SystemNamespace})
 
 	for _, ps := range matchedPoliciesByInbound {
-		sort.Sort(ByTargetRef(ps))
+		sort.Sort(ByTargetRef{resources: ps, dppNamespace: dpp.Meta.GetLabels()[core_model.K8sNamespaceComponent], systemNamespace: mpOpts.SystemNamespace})
 	}
 
 	fr, err := core_rules.BuildFromRules(matchedPoliciesByInbound)
@@ -237,13 +240,17 @@ func inboundsSelectedByTags(tagsSelector mesh_proto.TagSelector, dpp *core_mesh.
 	return inbounds, gwListeners, delegatedGatewaySelected
 }
 
-type ByTargetRef []core_model.Resource
+type ByTargetRef struct {
+	resources       []core_model.Resource
+	dppNamespace    string
+	systemNamespace string
+}
 
-func (b ByTargetRef) Len() int { return len(b) }
+func (b ByTargetRef) Len() int { return len(b.resources) }
 
 func (b ByTargetRef) Less(i, j int) bool {
-	r1, ok1 := b[i].GetSpec().(core_model.Policy)
-	r2, ok2 := b[j].GetSpec().(core_model.Policy)
+	r1, ok1 := b.resources[i].GetSpec().(core_model.Policy)
+	r2, ok2 := b.resources[j].GetSpec().(core_model.Policy)
 	if !(ok1 && ok2) {
 		panic("resource doesn't support TargetRef matching")
 	}
@@ -254,9 +261,14 @@ func (b ByTargetRef) Less(i, j int) bool {
 		return tr1.Kind.Less(tr2.Kind)
 	}
 
-	o1, o2 := originToNumber(b[i]), originToNumber(b[j])
+	o1, o2 := originToNumber(b.resources[i]), originToNumber(b.resources[j])
 	if o1 != o2 {
 		return o1 < o2
+	}
+
+	ns1, ns2 := namespaceToNumber(b.resources[i], b.systemNamespace, b.dppNamespace), namespaceToNumber(b.resources[j], b.systemNamespace, b.dppNamespace)
+	if ns1 != ns2 {
+		return ns1 < ns2
 	}
 
 	if tr1.Kind == common_api.MeshGateway {
@@ -265,13 +277,13 @@ func (b ByTargetRef) Less(i, j int) bool {
 		}
 	}
 
-	return core_model.GetDisplayName(b[i].GetMeta()) > core_model.GetDisplayName(b[j].GetMeta())
+	return core_model.GetDisplayName(b.resources[i].GetMeta()) > core_model.GetDisplayName(b.resources[j].GetMeta())
 }
 
-func (b ByTargetRef) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b ByTargetRef) Swap(i, j int) { b.resources[i], b.resources[j] = b.resources[j], b.resources[i] }
 
 // The logic of this method is to recreate the following comparison table:
-
+//
 // origin_1 | origin_2 | has_more_priority
 // ---------|----------|-------------
 // Global   | Zone     | origin_2
@@ -289,6 +301,31 @@ func originToNumber(r core_model.Resource) int {
 	case mesh_proto.GlobalResourceOrigin:
 		return -1
 	case mesh_proto.ZoneResourceOrigin:
+		return 1
+	default:
+		return 0
+	}
+}
+
+// The logic of this method is to recreate the following comparison table:
+//
+// ns_1     | ns_2     | has_more_priority
+// ---------|----------|-------------
+// system   | producer | ns_2
+// system   | consumer | ns_2
+// producer | system   | ns_1
+// producer | consumer | ns_2
+// consumer | system   | ns_1
+// consumer | producer | ns_1
+//
+// If we assign numbers to origins like system=-1, producer=1, consumer=0, then we can compare them as numbers
+// and get the same result as in the table above.
+func namespaceToNumber(r core_model.Resource, systemNamespace string, dppNamespace string) int {
+	ns := r.GetMeta().GetLabels()[core_model.K8sNamespaceComponent]
+	switch ns {
+	case "", systemNamespace:
+		return -1
+	case dppNamespace:
 		return 1
 	default:
 		return 0

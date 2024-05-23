@@ -89,7 +89,8 @@ type AuthnAPIServerPlugin interface {
 }
 
 type MatchedPoliciesConfig struct {
-	IncludeShadow bool
+	IncludeShadow   bool
+	SystemNamespace string
 }
 
 func NewMatchedPoliciesConfig(opts ...MatchedPoliciesOption) *MatchedPoliciesConfig {
@@ -105,6 +106,12 @@ type MatchedPoliciesOption func(*MatchedPoliciesConfig)
 func IncludeShadow() MatchedPoliciesOption {
 	return func(cfg *MatchedPoliciesConfig) {
 		cfg.IncludeShadow = true
+	}
+}
+
+func SystemNamespace(namespace string) MatchedPoliciesOption {
+	return func(cfg *MatchedPoliciesConfig) {
+		cfg.SystemNamespace = namespace
 	}
 }
 

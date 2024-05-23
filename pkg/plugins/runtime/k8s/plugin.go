@@ -286,10 +286,11 @@ func addValidators(mgr kube_ctrl.Manager, rt core_runtime.Runtime, converter k8s
 		composite.AddValidator(validator)
 	}
 
-	composite.AddValidator(&k8s_webhooks.PolicyNamespaceValidator{
-		SystemNamespace: rt.Config().Store.Kubernetes.SystemNamespace,
-	},
-	)
+	if rt.Config().Mode == config_core.Global {
+		composite.AddValidator(&k8s_webhooks.PolicyNamespaceValidator{
+			SystemNamespace: rt.Config().Store.Kubernetes.SystemNamespace,
+		})
+	}
 
 	composite.AddValidator(&k8s_webhooks.ContainerPatchValidator{
 		SystemNamespace: rt.Config().Store.Kubernetes.SystemNamespace,

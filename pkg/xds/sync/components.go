@@ -15,9 +15,14 @@ func DefaultDataplaneProxyBuilder(
 	config kuma_cp.Config,
 	apiVersion core_xds.APIVersion,
 ) *DataplaneProxyBuilder {
+	var systemNamespace string
+	if config.Store.Kubernetes != nil {
+		systemNamespace = config.Store.Kubernetes.SystemNamespace
+	}
 	return &DataplaneProxyBuilder{
-		Zone:       config.Multizone.Zone.Name,
-		APIVersion: apiVersion,
+		Zone:            config.Multizone.Zone.Name,
+		APIVersion:      apiVersion,
+		SystemNamespace: systemNamespace,
 	}
 }
 
