@@ -7,7 +7,6 @@
 | **Mesh Operator** | Deploys, configures, and manages Kuma control plane and mesh infrastructure | Reliable mesh with clear operational visibility, simple upgrades, seamless integration with org-wide observability tooling | Manages Kuma across environments, configures policies, owns observability pipelines, monitors mesh and zone health |
 | **Service Owner** | Owns microservices running inside the mesh | Understand service behavior, debug latency/errors quickly, track reliability (SLOs) | Consumes dashboards and traces, configures per-service observability via policies, doesn't manage mesh infrastructure |
 
----
 
 ## 1. Remove `kumactl install observability`
 
@@ -31,7 +30,6 @@
 **I want** the `kuma-service-to-service` Service Map dashboard removed,
 **so that** the shipped dashboards are maintainable and don't include visualizations that duplicate native Grafana capabilities (Grafana Node Graph, Tempo service map).
 
----
 
 ## 2. Virtual Probes Cleanup
 
@@ -43,7 +41,6 @@
 **I want** the deprecated virtual probes feature fully removed in Kuma 3.0,
 **so that** only the supported Application Probe Proxy mechanism exists and there's no ambiguity about which approach to use.
 
----
 
 ## 3. Remove Pod Annotation-based Metrics Configuration
 
@@ -55,7 +52,6 @@
 **I want** the ability to configure metrics through pod annotations (`prometheus.metrics.kuma.io/*`) removed in Kuma 3.0,
 **so that** there's a single, policy-driven way (MeshMetric) to configure metrics collection, reducing confusion and configuration drift.
 
----
 
 ## 4. OTel Maturity
 
@@ -91,31 +87,35 @@ Ref: [#9459](https://github.com/kumahq/kuma/issues/9459)
 
 Ref: [#8884](https://github.com/kumahq/kuma/issues/8884)
 
----
 
 ## 5. Dashboard Modernization
 
-> Shipped dashboards should reflect modern observability practices and OTel-native metrics.
+> Shipped dashboards should reflect modern observability practices, OTel-native metrics, and the unified naming strategy (KRI-based labels, standardized Envoy resource/stats names). Kuma 3.0 requires MeshServices Exclusive mode with unified naming enabled, so dashboards must use the new label scheme (workload KRI, scope-based stats) instead of legacy labels (mesh, dataplane, service).
 
-### 5.1 OTel-native dashboards
+### 5.1 Dashboards compatible with unified naming
+
+**As a** Mesh Operator,
+**I want** dashboards that use the unified naming labels (KRI-based workload identifiers, standardized Envoy stat names) introduced in Kuma 3.0,
+**so that** my dashboards work correctly with the new metric label scheme and I can correlate metrics to specific workloads and policies.
+
+### 5.2 OTel-native dashboards
 
 **As a** Mesh Operator,
 **I want** dashboards that work with metrics collected via the MeshMetric OTel backend,
 **so that** my OTel-based metrics pipeline has first-class visualization support.
 
-### 5.2 Golden Signals (RED/USE) dashboards
+### 5.3 Golden Signals (RED/USE) dashboards
 
 **As a** Service Owner,
 **I want** dashboards organized around golden signals - Rate, Errors, Duration for services and Utilization, Saturation, Errors for infrastructure,
 **so that** I can quickly assess service health using industry-standard patterns.
 
-### 5.3 Multi-zone observability dashboard
+### 5.4 Multi-zone observability dashboard
 
 **As a** Mesh Operator managing a multi-zone deployment,
 **I want** a dashboard showing cross-zone traffic, zone health, and federation status,
 **so that** I can monitor the health of my distributed mesh from a single pane.
 
----
 
 ## 6. Metrics & Compatibility
 
@@ -135,7 +135,6 @@ Ref: [#14426](https://github.com/kumahq/kuma/issues/14426)
 
 Ref: [#13281](https://github.com/kumahq/kuma/issues/13281)
 
----
 
 ## 7. Nice-to-Have Improvements
 
@@ -159,7 +158,6 @@ Ref: [#13281](https://github.com/kumahq/kuma/issues/13281)
 **I want** parent-based and tail-based sampling options in MeshTrace,
 **so that** I can collect traces efficiently - honoring upstream sampling decisions and capturing error/slow traces without sampling everything.
 
----
 
 ## Open Questions
 
