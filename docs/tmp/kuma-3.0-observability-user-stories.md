@@ -9,7 +9,7 @@
 
 ---
 
-## Epic 1: Remove `kumactl install observability`
+## 1. Remove `kumactl install observability`
 
 > Legacy observability installer ships a full Prometheus/Grafana/Loki/Jaeger stack via kumactl. This must be removed in Kuma 3.0 - users should bring their own observability stack.
 
@@ -33,7 +33,7 @@
 
 ---
 
-## Epic 2: Virtual Probes Cleanup
+## 2. Virtual Probes Cleanup
 
 > Virtual probes (`kuma.io/virtual-probes`) have been deprecated in favor of Application Probe Proxy. Remove all remnants.
 
@@ -45,7 +45,7 @@
 
 ---
 
-## Epic 3: Remove Pod Annotation-based Metrics Configuration
+## 3. Remove Pod Annotation-based Metrics Configuration
 
 > Metrics configuration via `prometheus.metrics.kuma.io/*` pod annotations is the legacy approach. MeshMetric policy is the replacement.
 
@@ -57,7 +57,7 @@
 
 ---
 
-## Epic 4: OTel Maturity
+## 4. OTel Maturity
 
 > OpenTelemetry backends in Kuma policies need to be production-ready for 3.0.
 
@@ -93,7 +93,7 @@ Ref: [#8884](https://github.com/kumahq/kuma/issues/8884)
 
 ---
 
-## Epic 5: Dashboard Modernization
+## 5. Dashboard Modernization
 
 > Shipped dashboards should reflect modern observability practices and OTel-native metrics.
 
@@ -117,7 +117,7 @@ Ref: [#8884](https://github.com/kumahq/kuma/issues/8884)
 
 ---
 
-## Epic 6: Metrics & Compatibility
+## 6. Metrics & Compatibility
 
 ### 6.1 Prometheus 3 UTF-8 metric name compatibility
 
@@ -137,7 +137,7 @@ Ref: [#13281](https://github.com/kumahq/kuma/issues/13281)
 
 ---
 
-## Epic 7: Nice-to-Have Improvements
+## 7. Nice-to-Have Improvements
 
 > Lower priority items that improve OTel integration depth. Target 3.0 if time permits, otherwise 3.1.
 
@@ -158,20 +158,6 @@ Ref: [#13281](https://github.com/kumahq/kuma/issues/13281)
 **As a** Service Owner,
 **I want** parent-based and tail-based sampling options in MeshTrace,
 **so that** I can collect traces efficiently - honoring upstream sampling decisions and capturing error/slow traces without sampling everything.
-
----
-
-## Priority Summary
-
-| Priority | Epic | Target Release |
-|----------|------|---------------|
-| P0 | Epic 1: Remove `kumactl install observability` (3 stories) | 2.14 (deprecation) + 3.0 (removal) |
-| P0 | Epic 2: Virtual probes cleanup | 2.14 (warning) + 3.0 (removal) |
-| P0 | Epic 3: Remove metrics pod annotations | 2.14 (warning) + 3.0 (removal) |
-| P0 | Epic 4: OTel maturity (4.1, 4.2, 4.3, 4.4) | 3.0 |
-| P1 | Epic 5: Dashboard modernization | 3.0 |
-| P1 | Epic 6: Metrics & compatibility | 3.0 |
-| P2 | Epic 7: Nice-to-have improvements | 3.0 if capacity, otherwise 3.1 |
 
 ---
 
