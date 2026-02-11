@@ -121,12 +121,6 @@
 **I want** mesh-generated trace spans to include routing metadata (which policy matched, which route was selected, retry/timeout config applied),
 **so that** I can see the mesh's routing decisions alongside my application spans in a single trace view.
 
-### 4.5 Integration with OTel Operator auto-instrumentation
-
-**As a** Mesh Operator,
-**I want** Kuma to work seamlessly with the OpenTelemetry Operator's auto-instrumentation injection (Java, Python, Node.js, Go, .NET),
-**so that** service owners get application-level traces connected to mesh-level spans without manual SDK setup.
-
 ## 5. Advanced Sampling (Inteligent tracing)
 
 > [Tail-based sampling is the most-requested strategy](https://opentelemetry.io/blog/2022/tail-sampling/). Requires stateful collectors with consistent hashing. Users want "always capture errors and slow traces" without sampling everything. Rule-based sampling per service is common in production (high-traffic at 1%, error paths at 100%).
@@ -249,24 +243,9 @@
 
 ## Story Index by Priority
 
-### TODO
+### Already implemented
 
-- [1.1](#11-single-otel-collector-as-telemetry-target-for-all-signals) Single OTel Collector as telemetry target for all signals
-- [3.1](#31-access-logs-enriched-with-trace-context) Access logs enriched with trace context
-- [11.1](#111-control-plane-performance-metrics-via-otel) Control plane performance metrics via OTel
-
-### TODO check
-
-- [3.3](#33-consistent-resource-attributes-across-all-signals) Consistent resource attributes across all signals
-- [4.3](#43-cross-zone-distributed-trace-continuity) Cross-zone distributed trace continuity
-- [4.5](#45-integration-with-otel-operator-auto-instrumentation) Integration with OTel Operator auto-instrumentation
-- [11.2](#112-configuration-sync-status-per-dataplane) Configuration sync status per dataplane
-
-### TODO - dashboard
-
-- [11.3](#113-zone-connectivity-and-synchronization-dashboard) Zone connectivity and synchronization dashboard
-
-### MeshMetric
+#### MeshMetric
 
 - [1.2](#12-per-environment-telemetry-routing) Per-environment telemetry routing
 - [1.4](#14-native-otlp-metric-export-from-proxies) Native OTLP metric export from proxies
@@ -274,13 +253,38 @@
 - [3.2](#32-merged-application--proxy-metrics-endpoint) Merged application + proxy metrics endpoint
 - [6.1](#61-per-service-observability-defaults-without-policy-authoring) Per-service observability defaults without policy authoring
 
-### MeshTrace
+#### MeshTrace
 
 - [2.4](#24-per-service-sampling-rate-overrides) Per-service sampling rate overrides
 
 ### Partialy done
 
 - [1.3](#13-otel-collector-deployment-guidance-as-part-of-mesh-setup) OTel Collector deployment guidance
+  - ✅ simple otel guide
+  - ❌ detailed integration with OTEL guidelines
+- [11.2](#112-configuration-sync-status-per-dataplane) Configuration sync status per dataplane
+  - ✅ Per-dataplane subscription tracking (DataplaneInsight)
+  - ✅ Prometheus metrics xds_*
+  - ❌ Pending xDS updates queue depth per dataplane
+  - ❌ Stale configuration age metric (time since last successful sync)
+
+### Verify if already supported
+
+- [3.3](#33-consistent-resource-attributes-across-all-signals) Consistent resource attributes across all signals
+- [4.3](#43-cross-zone-distributed-trace-continuity) Cross-zone distributed trace continuity
+
+### TODO
+
+- [1.1](#11-single-otel-collector-as-telemetry-target-for-all-signals) Single OTel Collector as telemetry target for all signals
+- [3.1](#31-access-logs-enriched-with-trace-context) Access logs enriched with trace context
+- [11.1](#111-control-plane-performance-metrics-via-otel) Control plane performance metrics via OTel
+
+### TODO new dashboards
+
+- [11.3](#113-zone-connectivity-and-synchronization-dashboard) Zone connectivity and synchronization dashboard
+- [7.1](#71-cross-zone-latency-baseline-and-anomaly-detection) Cross-zone latency baseline and anomaly detection
+- [9.1](#91-sli-metrics-from-mesh-traffic) -> [9.3](#93-slo-based-alerting-rules-shipped-with-dashboards) SLO/SLI Observability (entire epic 9)
+- [10.1](#101-mtls-status-visibility-in-dashboards) -> [10.3](#103-traffic-permission-violations-as-otel-events) Security and Policy Observability (entire epic 10)
 
 ### Nice to Have
 
@@ -291,9 +295,6 @@
 - [4.4](#44-trace-aware-traffic-routing-diagnostics) Trace-aware traffic routing diagnostics
 - [5.1](#51-error-biased-sampling) - [5.4](#54-rule-based-per-service-sampling-policies) Advanced Sampling (entire epic 5)
 - [6.2](#62-on-demand-trace-sampling-boost) On-demand trace sampling boost
-- [7.1](#71-cross-zone-latency-baseline-and-anomaly-detection) Cross-zone latency baseline and anomaly detection
-- [9.1](#91-sli-metrics-from-mesh-traffic) - [9.3](#93-slo-based-alerting-rules-shipped-with-dashboards) SLO/SLI Observability (entire epic 9)
-- [10.1](#101-mtls-status-visibility-in-dashboards) - [10.3](#103-traffic-permission-violations-as-otel-events) Security and Policy Observability (entire epic 10)
 
 ### WONT DO
 
