@@ -3,7 +3,7 @@ package injector
 import (
 	"context"
 	"fmt"
-	"regexp"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -151,12 +151,10 @@ var booleanAnnotations = map[string]bool{
 	metadata.KumaInitFirst:                         true,
 }
 
-var metricsAggregateAnnotationRegex = regexp.MustCompile(`^prometheus\.metrics\.kuma\.io/aggregate-`)
-
 func logMetricsAggregateDeprecations(podAnnotations map[string]string, logger logr.Logger) {
 	for key := range podAnnotations {
-		if metricsAggregateAnnotationRegex.MatchString(key) {
-			logger.Info("WARNING: using deprecated pod annotation, use MeshMetric policy instead", "key", key)
+		if strings.HasPrefix(key, "prometheus.metrics.kuma.io/aggregate-") {
+			logger.Info("WARNING: using deprecated pod annotation", "key", key, "message", "use MeshMetric policy instead")
 		}
 	}
 }

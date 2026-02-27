@@ -124,13 +124,13 @@ var _ = Describe("annotation deprecation", func() {
 			annotationKey:                 metadata.KumaMetricsPrometheusPort,
 			annotationValue:               "9090",
 			expectedKeyDeprecated:         true,
-			expectedKeyDeprecationMessage: "WARNING: 'prometheus.metrics.kuma.io/port' is deprecated, use MeshMetric policy instead",
+			expectedKeyDeprecationMessage: "'prometheus.metrics.kuma.io/port' is deprecated, use MeshMetric policy instead",
 		}),
 		Entry("prometheus.metrics.kuma.io/path - deprecated", testCase{
 			annotationKey:                 metadata.KumaMetricsPrometheusPath,
 			annotationValue:               "/metrics",
 			expectedKeyDeprecated:         true,
-			expectedKeyDeprecationMessage: "WARNING: 'prometheus.metrics.kuma.io/path' is deprecated, use MeshMetric policy instead",
+			expectedKeyDeprecationMessage: "'prometheus.metrics.kuma.io/path' is deprecated, use MeshMetric policy instead",
 		}),
 	)
 
@@ -145,8 +145,8 @@ var _ = Describe("annotation deprecation", func() {
 			Expect(logSink.root.messages).To(ContainElement(
 				logInfo{
 					name: nil,
-					tags: []interface{}{"key", annotationKey},
-					msg:  "WARNING: using deprecated pod annotation, use MeshMetric policy instead",
+					tags: []interface{}{"key", annotationKey, "message", "use MeshMetric policy instead"},
+					msg:  "WARNING: using deprecated pod annotation",
 				},
 			))
 		},

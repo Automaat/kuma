@@ -156,15 +156,15 @@ var PodAnnotationDeprecations = []Deprecation{
 	NewReplaceByDeprecation(KumaVirtualProbesPortAnnotation, KumaApplicationProbeProxyPortAnnotation, false),
 	{
 		Key:     KumaSidecarInjectionAnnotation,
-		Message: "WARNING: you are using kuma.io/sidecar-injection as annotation. This is not supported you should use it as a label instead",
+		Message: "you are using kuma.io/sidecar-injection as an annotation. This is not supported; you should use it as a label instead",
 	},
 	{
 		Key:     KumaMetricsPrometheusPort,
-		Message: "WARNING: 'prometheus.metrics.kuma.io/port' is deprecated, use MeshMetric policy instead",
+		Message: "'prometheus.metrics.kuma.io/port' is deprecated, use MeshMetric policy instead",
 	},
 	{
 		Key:     KumaMetricsPrometheusPath,
-		Message: "WARNING: 'prometheus.metrics.kuma.io/path' is deprecated, use MeshMetric policy instead",
+		Message: "'prometheus.metrics.kuma.io/path' is deprecated, use MeshMetric policy instead",
 	},
 }
 
