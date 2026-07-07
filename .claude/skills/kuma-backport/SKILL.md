@@ -84,18 +84,22 @@ Master is `github.com/kumahq/kuma/v3`. Release branches differ and are **not uni
 ## 4. Validate locally
 
 ```bash
-eval "$(mise env)"
-gofmt -l <changed-dirs>
-go build ./<changed-pkg>/... && go test ./<changed-test-pkgs>/...
+mise exec -- gofmt -l <changed-dirs>
+mise exec -- go vet ./<changed-pkg>/...
+mise exec -- golangci-lint run ./<changed-pkg>/...
 ```
 
-`mise env` gives the branch's toolchain; `gofmt -l` must print nothing. Then verify the branch diff has the same shape as the original PR — same files, similar stat:
+Prefer `mise exec -- <cmd>` over `eval "$(mise env)"`: in some shells the latter's PATH replaces the system PATH and breaks git/perl/sed for the rest of that command. `gofmt -l` must print nothing.
+
+Run `golangci-lint`, not just build/vet — and run the **branch's** pinned version (that's what `mise exec` gives you). A merged master fix passing CI does **not** guarantee the backport passes: a linter can be enabled on a release branch but disabled on master (e.g. `contextcheck` was off on master but on for 2.7–2.12), so a backport that is byte-identical to the master fix still fails `check`. Reproduce the exact failure locally and fix it properly — never suppress it with a linter-ignore directive. Example real fix: a spec that threaded a new `ctx` tripped `contextcheck` on a helper whose constructor can't take a context; hoisting that helper call out of the ctx-carrying function (build it in the caller, pass the result in) satisfied the linter without touching production signatures.
+
+Then verify the branch diff has the same shape as the original PR — same files, similar stat:
 
 ```bash
 git diff $UPSTREAM/<rel> HEAD --stat
 ```
 
-Extra files or missing files mean the bot's blind auto-resolution left damage outside the reported conflicts — fix before pushing. Don't run `make check` on a dirty tree (it fails by design); the targeted build/test above is enough locally, CI runs the full check.
+Extra files or missing files mean the bot's blind auto-resolution left damage outside the reported conflicts — fix before pushing. Don't run `make check` on a dirty tree (it fails by design); the targeted checks above are enough locally. Note tests needing a container/DB (testcontainers) won't run locally — `go vet` + `golangci-lint` compiling the package is the bar; CI runs the rest.
 
 ## 5. Fix DCO and push
 
