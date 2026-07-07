@@ -51,6 +51,7 @@ func MatchedPolicies(
 	if mpOpts.Cache != nil {
 		cacheKey = BuildCacheKey(string(rType), mpOpts, dpp)
 		if cached, ok := mpOpts.Cache.GetIfPresent(cacheKey); ok {
+			verifyPolicyMatchingCache(rType, dpp, resources, cached)
 			return cached, nil
 		}
 	}

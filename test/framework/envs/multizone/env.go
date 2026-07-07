@@ -68,6 +68,7 @@ func SetupKubeZone(wg *sync.WaitGroup, clusterName string, extraOptions ...KumaD
 		WithEnv("KUMA_RUNTIME_KUBERNETES_LEADER_ELECTION_LEASE_DURATION", "100s"),
 		WithEnv("KUMA_RUNTIME_KUBERNETES_LEADER_ELECTION_RENEW_DEADLINE", "80s"),
 		WithEnv("KUMA_MULTIZONE_ZONE_KDS_LABELS_SKIP_PREFIXES", "argocd.argoproj.io"),
+		WithEnv("KUMA_XDS_SERVER_POLICY_MATCHING_CACHE_VERIFY", "true"),
 	}
 	options = append(options, extraOptions...)
 	zone := NewK8sCluster(NewTestingT(), clusterName, Verbose)
