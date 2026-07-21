@@ -10,46 +10,45 @@ does not have any particular instructions.
 
 ### `meshServices` removed from the `Mesh` schema
 
-The `meshServices` field (and its `mode` enum) has been removed from the
-`Mesh` resource spec. Unified resource naming for a Dataplane now depends
-solely on that Dataplane's `FeatureUnifiedResourceNaming` capability,
-regardless of what the mesh's former `meshServices.mode` was set to.
+The `meshServices` field has been removed from the `Mesh` resource spec.
+Unified resource naming for a Dataplane now depends solely on that
+Dataplane's `FeatureUnifiedResourceNaming` capability.
 
 **Action required**
 
 None. A `Mesh` spec that still sets `meshServices` continues to apply
 successfully; the field is silently ignored by the control plane.
+There is no opt-out in `3.0.0` to retain legacy `kuma.io/service` behavior.
 
-### MeshService mode no longer disables zone proxy listeners, inspect endpoints, or MeshIdentity initialization
+### Zone proxy listeners, inspect endpoints, and MeshIdentity initialization are now always enabled
 
-The control plane now generates mesh-scoped zone proxy listeners and serves
-Dataplane inspect `_layout` and policy endpoints regardless of
-`meshServices.mode`.
+The control plane now always generates mesh-scoped zone proxy listeners and
+serves Dataplane inspect `_layout` and policy endpoints.
 
 The Kubernetes warning event reason `ZoneProxyListenersSkipped`, previously
-emitted when a zone proxy Service was ignored outside `Exclusive` mode, has been
-removed because these listeners are no longer skipped.
+emitted when a zone proxy Service was ignored under legacy
+`kuma.io/service` handling, has been removed because these listeners are no
+longer skipped.
 
 The `MeshIdentity` status reason `MeshServicesDisabled`, previously reported
-when identity initialization was skipped outside `Exclusive` mode, has also
-been removed because MeshIdentity initialization now proceeds in every
-MeshService mode.
+when identity initialization was skipped under legacy `kuma.io/service`
+handling, has also been removed because MeshIdentity initialization now always
+proceeds.
 
 **Action required**
 
 If you alert on `ZoneProxyListenersSkipped`, remove or update that alert before
 upgrading. Zone proxy Pods that previously depended on this skipped-listener
-behavior will now receive listener configuration in every MeshService mode.
+behavior will now receive listener configuration unconditionally.
 Also update any automation that expected the `MeshServicesDisabled`
 `MeshIdentity` status reason or treated inspect `_layout` as unavailable
-outside `Exclusive` mode.
+under legacy `kuma.io/service` handling.
 
 ### ServiceInsight, MeshInsight, and inspect `_rules` no longer report kuma.io/service based data
 
-With `meshServices.mode` always `Exclusive`, `kuma.io/service`-tagged services and
-legacy `ExternalService` resources are represented by `MeshService` and
-`MeshExternalService` instead, so the control plane no longer computes their
-legacy statistics:
+In `3.0.0`, `kuma.io/service`-tagged services and legacy `ExternalService`
+resources are represented by `MeshService` and `MeshExternalService` instead,
+so the control plane no longer computes their legacy statistics:
 
 - `ServiceInsight.services` no longer contains entries for regular
   (non-gateway) services or legacy `ExternalService` resources. Only delegated
