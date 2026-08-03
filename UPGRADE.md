@@ -8,6 +8,18 @@ does not have any particular instructions.
 
 ## Upgrade to `3.0.0`
 
+### `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` removed
+
+The `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` environment
+variable has been removed. `MeshTrafficPermission` rule generation now always
+uses the cliques algorithm.
+
+**Action required**
+
+Remove `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` from
+`kuma-cp` deployments, Helm values, and any other control-plane environment
+configuration before or during the upgrade.
+
 ### Real-resource policy selection now uses `labels` only
 
 Policies that select real resources through `spec.targetRef` or `spec.to[].targetRef` now resolve those targets by `labels` only. This applies to `Dataplane`, `MeshService`, `MeshExternalService`, `MeshMultiZoneService`, and `MeshHTTPRoute`.
