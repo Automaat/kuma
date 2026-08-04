@@ -10,25 +10,35 @@ does not have any particular instructions.
 
 ### `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` removed
 
-The `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` environment variable
-has been removed. MeshTrafficPermission rule generation now always uses the
-cliques-based grouping algorithm.
+The `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` environment
+variable has been removed. `MeshTrafficPermission` rule generation now always
+uses the cliques-based grouping algorithm.
 
 **Action required**
 
-Remove `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` from control
-plane deployments, Helm values, and any other runtime configuration before or
-after upgrading. Leaving it set no longer has any effect in Kuma 3.0.0.
+Remove `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` from
+control-plane (`kuma-cp`) deployments, Helm values, and any other runtime
+configuration before or during the upgrade. Leaving it set no longer has any
+effect in Kuma 3.0.0.
 
 ### `advertisedAddress` removed from `Dataplane` networking
 
-The `networking.advertisedAddress` field has been removed from the `Dataplane` resource. Proxies behind NAT or a private network (e.g. Docker) that relied on it to advertise a routable address to other proxies must now be reachable directly via `networking.address`.
+The `networking.advertisedAddress` field has been removed from the `Dataplane`
+resource. Proxies behind NAT or a private network (for example Docker) that
+relied on it to advertise a routable address to other proxies must now be
+reachable directly via `networking.address`.
 
 **Action required**
 
-Ensure every Universal `Dataplane` is reachable by other proxies on `networking.address` before upgrading.
+Ensure every Universal `Dataplane` is reachable by other proxies on
+`networking.address` before upgrading.
 
-**Warning**: `networking.advertisedAddress` is silently dropped on deserialization — protos are unmarshalled with `AllowUnknownFields`, so the field is simply ignored rather than rejected. Dataplanes still submitting it will fall back to `networking.address` for xDS endpoints, Envoy admin mTLS SANs, and `kumactl get dataplanes` output, which may break connectivity for proxies that are not reachable on `networking.address`.
+**Warning**: `networking.advertisedAddress` is silently dropped on
+deserialization; protos are unmarshalled with `AllowUnknownFields`, so the
+field is ignored rather than rejected. Dataplanes still submitting it fall
+back to `networking.address` for xDS endpoints, Envoy admin mTLS SANs, and
+`kumactl get dataplanes` output, which may break connectivity for proxies that
+are not reachable on `networking.address`.
 
 ### Real-resource policy selection now uses `labels` only
 
