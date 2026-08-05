@@ -14,12 +14,12 @@ The `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` environment
 variable has been removed. `MeshTrafficPermission` rule generation now always
 uses the cliques-based grouping algorithm.
 
-**Action required**
+**Recommended cleanup**
 
 Remove `KUMA_MESH_TRAFFIC_PERMISSION_DISABLE_CLIQUES_ALGORITHM` from
 control-plane (`kuma-cp`) deployments, Helm values, and any other runtime
-configuration before or during the upgrade. Leaving it set no longer has any
-effect in Kuma 3.0.0.
+configuration. Leaving it set has no effect in Kuma 3.0.0 and does not block
+the upgrade.
 
 ### `advertisedAddress` removed from `Dataplane` networking
 
