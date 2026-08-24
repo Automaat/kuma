@@ -73,7 +73,7 @@ func startTrace(ctx context.Context, tracer trace.Tracer, name string) (context.
 	return ctx, span
 }
 
-func doRequest[T message]( //nolint:nonamedreturns
+func doRequest[T message](
 	ctx context.Context,
 	tracer trace.Tracer,
 	resManager manager.ReadOnlyResourceManager,
@@ -81,8 +81,9 @@ func doRequest[T message]( //nolint:nonamedreturns
 	requestType string,
 	rpcs util_grpc.ReverseUnaryRPCs,
 	mkMsg func(id, typ, name, mesh string) util_grpc.ReverseUnaryMessage,
-) (resp T, retErr error) {
+) (T, error) {
 	var t T
+	var retErr error
 	ctx, span := startTrace(ctx, tracer, requestType)
 	defer func() {
 		if retErr != nil {
@@ -99,7 +100,8 @@ func doRequest[T message]( //nolint:nonamedreturns
 	reqId := core.NewUUID()
 	nameInZone, err := resNameInZone(ctx, resManager, proxy)
 	if err != nil {
-		return t, &KDSTransportError{requestType: requestType, reason: err.Error()}
+		retErr = &KDSTransportError{requestType: requestType, reason: err.Error()}
+		return t, retErr
 	}
 	msg := mkMsg(
 		reqId,
@@ -109,26 +111,31 @@ func doRequest[T message]( //nolint:nonamedreturns
 	)
 
 	if err = rpcs.Send(tenantZoneID.String(), msg); err != nil {
-		return t, &KDSTransportError{requestType: requestType, reason: err.Error()}
+		retErr = &KDSTransportError{requestType: requestType, reason: err.Error()}
+		return t, retErr
 	}
 
 	defer rpcs.DeleteWatch(tenantZoneID.String(), reqId)
 	ch := make(chan util_grpc.ReverseUnaryMessage)
 	if err := rpcs.WatchResponse(tenantZoneID.String(), reqId, ch); err != nil {
-		return t, errors.Wrapf(err, "could not watch the response")
+		retErr = errors.Wrapf(err, "could not watch the response")
+		return t, retErr
 	}
 
 	select {
 	case <-ctx.Done():
-		return t, ctx.Err()
+		retErr = ctx.Err()
+		return t, retErr
 	case resp := <-ch:
 		var t T
 		tResp, ok := resp.(T)
 		if !ok {
-			return t, errors.New("invalid request type")
+			retErr = errors.New("invalid request type")
+			return t, retErr
 		}
 		if tResp.GetError() != "" {
-			return t, &KDSTransportError{requestType: requestType, reason: tResp.GetError()}
+			retErr = &KDSTransportError{requestType: requestType, reason: tResp.GetError()}
+			return t, retErr
 		}
 		return tResp, nil
 	}
