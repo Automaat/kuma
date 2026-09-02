@@ -607,12 +607,19 @@ KDS. Kubernetes clusters running `zone` mode require no changes.
    `kdsGlobalAddress` that every Zone control plane currently points at, and
    the KDS TLS material (CA and client certs, or whatever `tls.kdsGlobalServer`/
    `tls.kdsZoneClient` settings zones use to trust it). List every
-   Global-scoped resource that must survive the move: `Mesh`, `Zone`,
-   `ZoneIngress`/`ZoneEgress` insights, global policies, secrets, and any
-   multi-zone resources (`MeshMultiZoneService`, `Global*` policy scopes).
-   Freeze writes to these resources for the duration of the migration so
-   nothing is created or changed against the old Global CP after you start
-   exporting it.
+   Global-scoped resource that must survive the move: `Mesh`, `Zone`, global
+   policies, secrets, and any multi-zone resources (`MeshMultiZoneService`,
+   `Global*` policy scopes). Freeze writes to these resources for the
+   duration of the migration so nothing is created or changed against the old
+   Global CP after you start exporting it.
+
+   Insights (`ZoneInsight`, `MeshInsight`, `DataplaneInsight`) are read-only
+   status resources: they are excluded from the federation export in step 4
+   and the new Global CP rebuilds them as zones reconnect, so do not try to
+   migrate them. Legacy `ZoneIngress`/`ZoneEgress` resources and their
+   insights no longer exist in this release at all — replace those zone
+   proxies as described in [`ZoneIngress` and `ZoneEgress` resources
+   removed](#zoneingress-and-zoneegress-resources-removed) before upgrading.
 
 2. **Provision the target store.** Stand up PostgreSQL (or another supported
    non-Kubernetes store) reachable from wherever the new Universal `kuma-cp`
