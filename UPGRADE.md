@@ -622,26 +622,60 @@ KDS. Kubernetes clusters running `zone` mode require no changes.
    migration starts. Take a snapshot/backup of the old Kubernetes-native
    store (its `etcd`/K8s CRDs) as a rollback point.
 
-3. **Deploy the new Universal Global control plane.** Configure `kuma-cp`
-   with `mode: global`, `environment: universal`, `store.type: postgres`
-   pointing at the database provisioned above. Start it and run
-   `kuma-cp migrate up` to apply the Postgres schema before serving traffic
-   (`store.postgres.tolerateNewerDBVersions` makes this a no-op if the
-   schema is already current, so it is safe to run defensively).
+3. **Migrate the schema, then deploy the new Universal Global control
+   plane.** Configure `kuma-cp` with `mode: global`,
+   `environment: universal`, `store.type: postgres` pointing at the database
+   provisioned above.
+
+   Run `kuma-cp migrate up` *before* starting the control plane, as an init
+   container or pre-deploy job using the same store configuration. `kuma-cp`
+   refuses to boot against a database that has not been migrated (`database
+   is not migrated. Run "kuma-cp migrate up" to update database to the newest
+   schema`), so a deployment that starts the server first crash-loops on a
+   fresh database and never reaches the migration. Re-running the migration
+   against an already-current schema is a no-op, so it is safe in a startup
+   path that runs on every rollout.
+
+   Give the new Global CP a KDS server certificate that your Zones already
+   trust. Set `multizone.global.kds.tlsCertFile`/`tlsKeyFile`
+   (`KUMA_MULTIZONE_GLOBAL_KDS_TLS_CERT_FILE`/`..._TLS_KEY_FILE`), or
+   `general.tlsCertFile`/`tlsKeyFile`, which the KDS server falls back to when
+   the KDS-specific paths are empty. If you leave both unset, `kuma-cp`
+   auto-generates a self-signed certificate that no Zone's existing
+   `multizone.zone.kds.rootCaFile` (`KUMA_MULTIZONE_ZONE_KDS_ROOT_CA_FILE`)
+   trusts, and every Zone connecting over `grpcs://` fails the KDS handshake
+   at cutover. Either reuse the old Global CP's KDS key pair (or issue a new
+   one from the same CA), or sequence a CA rotation: distribute the new
+   `rootCaFile` to every Zone *before* starting step 5.
 
 4. **Move Global resources into the new store.** Export the Global-scoped
    resources identified in step 1 from the old Kubernetes-native Global CP
-   (e.g. `kubectl get <kind> -A -o yaml`, or `kumactl export` if available for
-   your version) and apply them against the new Universal Global CP's API.
-   Verify the new Global CP serves the same `Mesh`, `Zone`, and policy
-   resources as the old one (`kumactl get meshes`, `kumactl get zones`)
-   before moving on.
+   and apply them against the new Universal Global CP's API:
+
+   ```sh
+   # against the old Global CP
+   kumactl export --profile federation-with-policies --format universal > global-resources.yaml
+   # against the new Universal Global CP
+   kumactl apply -f global-resources.yaml
+   ```
+
+   Pass `--profile federation-with-policies` explicitly. The default
+   `federation` profile filters out every `targetRef` policy
+   (`MeshTimeout`, `MeshHTTPRoute`, `MeshTrafficPermission`, and so on), so an
+   export taken with the default silently carries over meshes, zones, and
+   secrets while dropping those policies. `--format universal` matches the
+   store type of the new Global CP. Verify the new Global CP serves the same
+   `Mesh`, `Zone`, and policy resources as the old one (`kumactl get meshes`,
+   `kumactl get zones`, and `kumactl get <policy-type>` for each policy type
+   you exported) before moving on.
 
 5. **Cut Zone control planes over via KDS.** For each Kubernetes Zone CP,
    update `controlPlane.kdsGlobalAddress` (Helm) /
    `KUMA_MULTIZONE_ZONE_GLOBAL_ADDRESS` to the new Universal Global CP's KDS
-   address, and carry over (or intentionally rotate) the KDS TLS trust so
-   zones can still authenticate the Global CP. Roll the Zone CP and confirm
+   address. If you rotated the KDS CA in step 3 rather than reusing the old
+   key pair, update `controlPlane.tls.kdsZoneClient` /
+   `KUMA_MULTIZONE_ZONE_KDS_ROOT_CA_FILE` to the new CA in the same roll, or
+   the zone will fail the handshake. Roll the Zone CP and confirm
    it reconnects: check its logs for a successful KDS handshake and confirm
    the zone appears healthy from the new Global CP (`kumactl get zones`).
    Repeat one zone at a time, watching each before moving to the next.
