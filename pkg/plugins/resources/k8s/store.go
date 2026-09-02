@@ -14,11 +14,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/kumahq/kuma/v3/api/mesh/v1alpha1"
+	mesh_api "github.com/kumahq/kuma/v3/pkg/core/resources/apis/mesh"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/labels"
 	core_model "github.com/kumahq/kuma/v3/pkg/core/resources/model"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/registry"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/store"
 	k8s_common "github.com/kumahq/kuma/v3/pkg/plugins/common/k8s"
+	native_api "github.com/kumahq/kuma/v3/pkg/plugins/resources/k8s/native/api/v1alpha1"
 	k8s_model "github.com/kumahq/kuma/v3/pkg/plugins/resources/k8s/native/pkg/model"
 	k8s_registry "github.com/kumahq/kuma/v3/pkg/plugins/resources/k8s/native/pkg/registry"
 	"github.com/kumahq/kuma/v3/pkg/plugins/runtime/k8s/metadata"
@@ -228,6 +230,20 @@ func (s *KubernetesStore) List(ctx context.Context, rs core_model.ResourceList, 
 
 	rs.GetPagination().SetTotal(uint32(len(fullList.GetItems())))
 	return nil
+}
+
+func (s *KubernetesStore) ReadRawMeshSpec(ctx context.Context, meshName string) ([]byte, error) {
+	obj := &native_api.Mesh{}
+	if err := s.Client.Get(ctx, kube_client.ObjectKey{Name: meshName}, obj); err != nil {
+		if kube_apierrs.IsNotFound(err) {
+			return nil, store.ErrorResourceNotFound(mesh_api.MeshType, meshName, core_model.NoMesh)
+		}
+		return nil, errors.Wrap(err, "failed to get k8s resource")
+	}
+	if obj.Spec == nil {
+		return nil, nil
+	}
+	return append([]byte(nil), obj.Spec.Raw...), nil
 }
 
 // k8sNameNamespace rejects a name Kubernetes cannot represent: the name is a

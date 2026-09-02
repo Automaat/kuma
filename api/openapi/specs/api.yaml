@@ -43,6 +43,19 @@ paths:
           $ref: './common/error_schema.yaml#/components/responses/BadRequest'
         '500':
           $ref: './common/error_schema.yaml#/components/responses/Internal'
+  /mesh-identity-report:
+    get:
+      operationId: get-mesh-identity-migration-report
+      summary: Get mesh identity migration report
+      description: Returns outage warnings for meshes still depending on removed Mesh mTLS configuration and unresolved policy targetRefs
+      tags: ["System"]
+      responses:
+        '200':
+          $ref: '#/components/responses/MeshIdentityMigrationReportResponse'
+        '400':
+          $ref: './common/error_schema.yaml#/components/responses/BadRequest'
+        '500':
+          $ref: './common/error_schema.yaml#/components/responses/Internal'
   /meshes/{mesh}/{resourceType}/{resourceName}/_rules:
     get:
       operationId: inspect-dataplanes-rules
@@ -769,6 +782,26 @@ components:
         spiffeId:
           type: string
           description: SPIFFE ID of the dataplane's workload identity certificate
+    MeshIdentityMigrationReport:
+      type: object
+      title: MeshIdentityMigrationReport
+      required: [issues]
+      properties:
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeshIdentityMigrationIssue'
+    MeshIdentityMigrationIssue:
+      type: object
+      title: MeshIdentityMigrationIssue
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        mesh:
+          type: string
+        message:
+          type: string
   responses:
     IndexResponse:
       description: A response for the index endpoint
@@ -827,6 +860,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/DataplaneNetworkingLayout'
+    MeshIdentityMigrationReportResponse:
+      description: A response containing mesh identity migration warnings.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MeshIdentityMigrationReport'
     ProxyPolicyConfResponse:
       description: A response containing policies configuration for selected dataplane
       content:

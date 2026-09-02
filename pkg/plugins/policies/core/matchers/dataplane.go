@@ -103,10 +103,11 @@ func MatchedPolicies(
 		warnings = append(warnings, fmt.Sprintf("couldn't create From rules: %s", err.Error()))
 	}
 
-	tr, err := core_rules.BuildToRules(dpPolicies, resources)
+	tr, toWarnings, err := core_rules.BuildToRules(dpPolicies, resources)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("couldn't create To rules: %s", err.Error()))
 	}
+	warnings = append(warnings, toWarnings...)
 
 	pc, err := core_rules.BuildProxyConf(dpPolicies.GetItems())
 	if err != nil {

@@ -1,6 +1,8 @@
 package outbound
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 
 	common_api "github.com/kumahq/kuma/v3/api/common/v1alpha1"
@@ -76,9 +78,14 @@ type ToEntry interface {
 // BuildRules constructs ResourceRules from the given policies and resource reader.
 // It first extracts 'to' entries from the policies and then builds the rules based on these entries.
 func BuildRules(policies core_model.ResourceList, reader kri.ResourceReader) (ResourceRules, error) {
+	rules, _, err := BuildRulesWithWarnings(policies, reader)
+	return rules, err
+}
+
+func BuildRulesWithWarnings(policies core_model.ResourceList, reader kri.ResourceReader) (ResourceRules, []string, error) {
 	entries, err := GetEntries(policies, reader)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get 'to' entries")
+		return nil, nil, errors.Wrap(err, "failed to get 'to' entries")
 	}
 	return buildRules(entries, reader)
 }
@@ -190,14 +197,23 @@ func (a *artificialToEntry) GetDefault() any {
 func buildRules[T interface {
 	common.PolicyAttributes
 	common.Entry[ToEntry]
-}](list []T, reader kri.ResourceReader) (ResourceRules, error) {
+}](list []T, reader kri.ResourceReader) (ResourceRules, []string, error) {
 	rules := ResourceRules{}
+	var warnings []string
 
 	Sort(list)
 
 	var resolvedItems []*withResolvedResource[T]
 	for _, item := range list {
 		rs := resolve.TargetRef(item.GetEntry().GetTargetRef(), item.GetResourceMeta(), reader)
+		if len(rs) == 0 {
+			warnings = append(warnings, fmt.Sprintf(
+				"unable to resolve TargetRef on policy: mesh:%s name:%s error:%q",
+				item.GetResourceMeta().GetMesh(),
+				item.GetResourceMeta().GetName(),
+				fmt.Sprintf("unable to resolve To.TargetRef kind:%s labels:%v", item.GetEntry().GetTargetRef().Kind, pointer.Deref(item.GetEntry().GetTargetRef().Labels)),
+			))
+		}
 		for _, r := range rs {
 			resolvedItems = append(resolvedItems, &withResolvedResource[T]{entry: item, rs: r})
 		}
@@ -223,7 +239,7 @@ func buildRules[T interface {
 			// merge all relevant confs into one, the order of merging is guaranteed by SortToEntries
 			merged, err := merge.Entries(relevant)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			rules[uri] = ResourceRule{
 				Resource:            resource.GetMeta(),
@@ -235,7 +251,7 @@ func buildRules[T interface {
 		}
 	}
 
-	return rules, nil
+	return rules, warnings, nil
 }
 
 type withResolvedResource[T any] struct {

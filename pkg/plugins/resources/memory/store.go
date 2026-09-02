@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	mesh_api "github.com/kumahq/kuma/v3/pkg/core/resources/apis/mesh"
 	core_model "github.com/kumahq/kuma/v3/pkg/core/resources/model"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/registry"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/store"
@@ -284,6 +285,17 @@ func (c *memoryStore) Get(_ context.Context, r core_model.Resource, fs ...store.
 		return store.ErrorResourceConflict(r.Descriptor().Name, opts.Name, opts.Mesh)
 	}
 	return c.unmarshalRecord(record, r)
+}
+
+func (c *memoryStore) ReadRawMeshSpec(_ context.Context, meshName string) ([]byte, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	_, record := c.findRecord(string(mesh_api.MeshType), meshName, core_model.NoMesh)
+	if record == nil {
+		return nil, store.ErrorResourceNotFound(mesh_api.MeshType, meshName, core_model.NoMesh)
+	}
+	return []byte(record.Spec), nil
 }
 
 func (c *memoryStore) List(_ context.Context, rs core_model.ResourceList, fs ...store.ListOptionsFunc) error {

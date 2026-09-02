@@ -20,6 +20,7 @@ import (
 	"github.com/sethvargo/go-retry"
 
 	config "github.com/kumahq/kuma/v3/pkg/config/plugins/resources/postgres"
+	mesh_api "github.com/kumahq/kuma/v3/pkg/core/resources/apis/mesh"
 	core_model "github.com/kumahq/kuma/v3/pkg/core/resources/model"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/store"
 	core_metrics "github.com/kumahq/kuma/v3/pkg/metrics"
@@ -306,6 +307,20 @@ func (r *pgxResourceStore) Get(ctx context.Context, resource core_model.Resource
 		return store.ErrorResourceConflict(resource.Descriptor().Name, opts.Name, opts.Mesh)
 	}
 	return nil
+}
+
+func (r *pgxResourceStore) ReadRawMeshSpec(ctx context.Context, meshName string) ([]byte, error) {
+	statement := `SELECT spec FROM resources WHERE name=$1 AND mesh=$2 AND type=$3;`
+	args := []any{meshName, core_model.NoMesh, mesh_api.MeshType}
+	var spec string
+	err := r.pool.QueryRow(ctx, statement, args...).Scan(&spec)
+	if stderrors.Is(err, pgx.ErrNoRows) {
+		return nil, store.ErrorResourceNotFound(mesh_api.MeshType, meshName, core_model.NoMesh)
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to execute query: %s", statement)
+	}
+	return []byte(spec), nil
 }
 
 // retryOnSafeToRetry retries op when pgx returns an error that implements

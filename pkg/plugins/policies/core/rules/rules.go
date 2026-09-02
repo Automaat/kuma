@@ -100,12 +100,12 @@ func BuildFromRules(
 	}, nil
 }
 
-func BuildToRules(matchedPolicies core_model.ResourceList, reader kri.ResourceReader) (ToRules, error) {
-	resourceRules, err := outbound.BuildRules(matchedPolicies, reader)
+func BuildToRules(matchedPolicies core_model.ResourceList, reader kri.ResourceReader) (ToRules, []string, error) {
+	resourceRules, warnings, err := outbound.BuildRulesWithWarnings(matchedPolicies, reader)
 	if err != nil {
-		return ToRules{}, err
+		return ToRules{}, nil, err
 	}
-	return ToRules{ResourceRules: resourceRules}, nil
+	return ToRules{ResourceRules: resourceRules}, warnings, nil
 }
 
 func BuildProxyConf(matchedPolicies []core_model.Resource) (*ProxyConf, error) {

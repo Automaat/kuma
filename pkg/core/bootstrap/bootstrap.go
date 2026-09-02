@@ -26,12 +26,14 @@ import (
 	core_apis "github.com/kumahq/kuma/v3/pkg/core/resources/apis"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/apis/mesh"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/apis/meshidentity"
+	meshidentity_diagnostics "github.com/kumahq/kuma/v3/pkg/core/resources/apis/meshidentity/diagnostics"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/apis/system"
 	core_manager "github.com/kumahq/kuma/v3/pkg/core/resources/manager"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/registry"
 	core_store "github.com/kumahq/kuma/v3/pkg/core/resources/store"
 	core_runtime "github.com/kumahq/kuma/v3/pkg/core/runtime"
 	"github.com/kumahq/kuma/v3/pkg/core/runtime/component"
+	runtime_meshidentity "github.com/kumahq/kuma/v3/pkg/core/runtime/meshidentity"
 	runtime_reports "github.com/kumahq/kuma/v3/pkg/core/runtime/reports"
 	secret_cipher "github.com/kumahq/kuma/v3/pkg/core/secrets/cipher"
 	secret_manager "github.com/kumahq/kuma/v3/pkg/core/secrets/manager"
@@ -202,6 +204,14 @@ func buildRuntime(appCtx context.Context, cfg kuma_cp.Config) (core_runtime.Runt
 
 	if err := rt.Add(leaderInfoComponent); err != nil {
 		return nil, err
+	}
+	if rawReader, ok := builder.ResourceStore().(meshidentity_diagnostics.LegacyMeshSpecReader); ok {
+		if err := rt.Add(&runtime_meshidentity.ReportComponent{
+			Analyzer: meshidentity_diagnostics.NewAnalyzer(builder.ReadOnlyResourceManager(), rawReader, cfg.Multizone.Zone.Name),
+			EventBus: builder.EventBus(),
+		}); err != nil {
+			return nil, err
+		}
 	}
 
 	for name, plugin := range core_plugins.Plugins().RuntimePlugins() {

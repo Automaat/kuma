@@ -35,6 +35,7 @@ import (
 	"github.com/kumahq/kuma/v3/pkg/core"
 	resources_access "github.com/kumahq/kuma/v3/pkg/core/resources/access"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/apis/mesh"
+	meshidentity_diagnostics "github.com/kumahq/kuma/v3/pkg/core/resources/apis/meshidentity/diagnostics"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/apis/system"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/manager"
 	"github.com/kumahq/kuma/v3/pkg/core/resources/model"
@@ -160,6 +161,9 @@ func NewApiServer(
 	)
 	addPoliciesWsEndpoints(ws, cfg.Mode == config_core.Global, cfg.IsFederatedZoneCP(), cfg.ApiServer.ReadOnly, defs)
 	addInspectEndpoints(ws, cfg, meshContextBuilder, rt.ResourceManager(), rt.Access().ResourceAccess)
+	if rawReader, ok := rt.ResourceStore().(meshidentity_diagnostics.LegacyMeshSpecReader); ok {
+		addMeshIdentityReportEndpoints(ws, rt.ReadOnlyResourceManager(), rawReader, cfg.Multizone.Zone.Name)
+	}
 	addInspectEnvoyAdminEndpoints(ws, rt.ResourceManager(), rt.Access().EnvoyAdminAccess, rt.EnvoyAdminClient())
 	addInspectMeshServiceEndpoints(ws, rt.ResourceManager(), cfg.Mode == config_core.Global)
 	guiUrl := ""

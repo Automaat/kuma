@@ -10,6 +10,10 @@ import (
 	util_http "github.com/kumahq/kuma/v3/pkg/util/http"
 )
 
+type rawResourceResponse struct {
+	Spec json.RawMessage `json:"spec"`
+}
+
 func doRequest(client util_http.Client, ctx context.Context, req *http.Request) (int, []byte, error) {
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
@@ -29,4 +33,16 @@ func doRequest(client util_http.Client, ctx context.Context, req *http.Request) 
 		}
 	}
 	return resp.StatusCode, b, nil
+}
+
+func ReadSpecFromResponse(resp *http.Response) ([]byte, error) {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	resource := rawResourceResponse{}
+	if err := json.Unmarshal(body, &resource); err != nil {
+		return nil, err
+	}
+	return resource.Spec, nil
 }
