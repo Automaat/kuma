@@ -609,7 +609,9 @@ KDS. Kubernetes clusters running `zone` mode require no changes.
    `tls.kdsZoneClient` settings zones use to trust it). List every
    Global-scoped resource that must survive the move: `Mesh`, `Zone`, global
    policies, secrets, and any multi-zone resources (`MeshMultiZoneService`,
-   `Global*` policy scopes). Freeze writes to these resources for the
+   `Global*` policy scopes). Record each `Zone`'s `enabled` value explicitly —
+   `Zone` resources are not carried by the export in step 4 and have to be
+   re-created by hand. Freeze writes to these resources for the
    duration of the migration so nothing is created or changed against the old
    Global CP after you start exporting it.
 
@@ -681,12 +683,42 @@ KDS. Kubernetes clusters running `zone` mode require no changes.
    Pass `--profile federation-with-policies` explicitly. The default
    `federation` profile filters out every `targetRef` policy
    (`MeshTimeout`, `MeshHTTPRoute`, `MeshTrafficPermission`, and so on), so an
-   export taken with the default silently carries over meshes, zones, and
-   secrets while dropping those policies. `--format universal` matches the
-   store type of the new Global CP. Verify the new Global CP serves the same
-   `Mesh`, `Zone`, and policy resources as the old one (`kumactl get meshes`,
-   `kumactl get zones`, and `kumactl get <policy-type>` for each policy type
-   you exported) before moving on.
+   export taken with the default silently carries over meshes and secrets
+   while dropping those policies. `--format universal` matches the store type
+   of the new Global CP. Verify the new Global CP serves the same `Mesh`,
+   secret, and policy resources as the old one (`kumactl get meshes` and
+   `kumactl get <policy-type>` for each policy type you exported) before
+   moving on.
+
+   **`Zone` resources are not covered by either export profile.** Both
+   profiles only emit resource types the Global CP syncs down to zones, and a
+   `Zone` is managed independently by each control plane, so `kumactl export`
+   never contains one. Copy them across by hand, still before cutover. List
+   them on the old Global CP:
+
+   ```sh
+   # against the old Global CP
+   kumactl get zones -o yaml
+   ```
+
+   and re-create each one on the new Global CP, preserving its `enabled`
+   value (a `Zone` with no `enabled` field is enabled):
+
+   ```sh
+   # against the new Universal Global CP
+   echo '
+   type: Zone
+   name: zone-1
+   enabled: false
+   ' | kumactl apply -f -
+   ```
+
+   This matters most for zones you deliberately disabled. If a `Zone` is
+   missing when its Zone CP first connects over KDS in step 5, the new Global
+   CP creates it automatically with `enabled: true`, silently re-admitting a
+   zone you had taken out of cross-zone load balancing. Confirm `kumactl get
+   zones` against the new Global CP lists the same zones with the same
+   `enabled` values as the old one before moving on.
 
 5. **Cut Zone control planes over via KDS.** For each Kubernetes Zone CP,
    update `controlPlane.kdsGlobalAddress` (Helm) /
