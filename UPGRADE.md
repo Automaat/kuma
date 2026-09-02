@@ -600,6 +600,65 @@ in `global` mode on Universal, backed by PostgreSQL, and keep your Kubernetes
 clusters as Zone control planes connecting to that Global control plane over
 KDS. Kubernetes clusters running `zone` mode require no changes.
 
+**Migration runbook**
+
+1. **Inventory the current Global control plane.** Record its `mode`
+   (`global`), `environment` (`kubernetes`), `store.type` (`kubernetes`), the
+   `kdsGlobalAddress` that every Zone control plane currently points at, and
+   the KDS TLS material (CA and client certs, or whatever `tls.kdsGlobalServer`/
+   `tls.kdsZoneClient` settings zones use to trust it). List every
+   Global-scoped resource that must survive the move: `Mesh`, `Zone`,
+   `ZoneIngress`/`ZoneEgress` insights, global policies, secrets, and any
+   multi-zone resources (`MeshMultiZoneService`, `Global*` policy scopes).
+   Freeze writes to these resources for the duration of the migration so
+   nothing is created or changed against the old Global CP after you start
+   exporting it.
+
+2. **Provision the target store.** Stand up PostgreSQL (or another supported
+   non-Kubernetes store) reachable from wherever the new Universal `kuma-cp`
+   will run: create the database/role, configure credentials
+   (`KUMA_STORE_POSTGRES_PASSWORD` or `store.postgres` config), TLS
+   (`store.postgres.tls.mode`) if required, and back it up before the
+   migration starts. Take a snapshot/backup of the old Kubernetes-native
+   store (its `etcd`/K8s CRDs) as a rollback point.
+
+3. **Deploy the new Universal Global control plane.** Configure `kuma-cp`
+   with `mode: global`, `environment: universal`, `store.type: postgres`
+   pointing at the database provisioned above. Start it and run
+   `kuma-cp migrate up` to apply the Postgres schema before serving traffic
+   (`store.postgres.tolerateNewerDBVersions` makes this a no-op if the
+   schema is already current, so it is safe to run defensively).
+
+4. **Move Global resources into the new store.** Export the Global-scoped
+   resources identified in step 1 from the old Kubernetes-native Global CP
+   (e.g. `kubectl get <kind> -A -o yaml`, or `kumactl export` if available for
+   your version) and apply them against the new Universal Global CP's API.
+   Verify the new Global CP serves the same `Mesh`, `Zone`, and policy
+   resources as the old one (`kumactl get meshes`, `kumactl get zones`)
+   before moving on.
+
+5. **Cut Zone control planes over via KDS.** For each Kubernetes Zone CP,
+   update `controlPlane.kdsGlobalAddress` (Helm) /
+   `KUMA_MULTIZONE_ZONE_GLOBAL_ADDRESS` to the new Universal Global CP's KDS
+   address, and carry over (or intentionally rotate) the KDS TLS trust so
+   zones can still authenticate the Global CP. Roll the Zone CP and confirm
+   it reconnects: check its logs for a successful KDS handshake and confirm
+   the zone appears healthy from the new Global CP (`kumactl get zones`).
+   Repeat one zone at a time, watching each before moving to the next.
+
+6. **Roll back if anything fails.** If `kuma-cp migrate up` fails, resource
+   verification in step 4 turns up missing/mismatched data, or a zone fails
+   to reconnect in step 5, point the affected Zone control plane(s) back at
+   the old Kubernetes-native Global CP's KDS address and leave the old store
+   untouched — it was never modified by this procedure, only read from. Fix
+   the issue against the new Universal Global CP and retry the cutover for
+   that zone.
+
+7. **Retire the old Global control plane.** Only after every zone has been
+   cut over and reports healthy against the new Universal Global CP, and all
+   Global resources are confirmed visible from it, decommission the old
+   Kubernetes-native Global control plane deployment and its store.
+
 ### `standalone` mode removed
 
 The deprecated `standalone` control plane mode has been removed. `KUMA_MODE`/
