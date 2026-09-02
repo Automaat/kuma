@@ -637,16 +637,28 @@ KDS. Kubernetes clusters running `zone` mode require no changes.
    path that runs on every rollout.
 
    Give the new Global CP a KDS server certificate that your Zones already
-   trust. Set `multizone.global.kds.tlsCertFile`/`tlsKeyFile`
+   trust *and* that is valid for the new address. Set
+   `multizone.global.kds.tlsCertFile`/`tlsKeyFile`
    (`KUMA_MULTIZONE_GLOBAL_KDS_TLS_CERT_FILE`/`..._TLS_KEY_FILE`), or
    `general.tlsCertFile`/`tlsKeyFile`, which the KDS server falls back to when
    the KDS-specific paths are empty. If you leave both unset, `kuma-cp`
    auto-generates a self-signed certificate that no Zone's existing
    `multizone.zone.kds.rootCaFile` (`KUMA_MULTIZONE_ZONE_KDS_ROOT_CA_FILE`)
    trusts, and every Zone connecting over `grpcs://` fails the KDS handshake
-   at cutover. Either reuse the old Global CP's KDS key pair (or issue a new
-   one from the same CA), or sequence a CA rotation: distribute the new
-   `rootCaFile` to every Zone *before* starting step 5.
+   at cutover.
+
+   Trust alone is not enough: a Zone dialing `grpcs://` does full certificate
+   verification, so the server certificate must also carry the host or IP of
+   the new `kdsGlobalAddress` in its SANs, or the handshake fails with a
+   hostname mismatch even though the CA is trusted. Reuse the old Global CP's
+   KDS key pair *only* if its SANs already cover the new address — a
+   certificate minted for the old Kubernetes `Service` name usually does not.
+   Otherwise issue a new certificate from the same CA with the new host/IP in
+   its SANs, or sequence a CA rotation: distribute the new `rootCaFile` to
+   every Zone *before* starting step 5. Do not paper over a SAN mismatch with
+   `multizone.zone.kds.tlsSkipVerify`
+   (`KUMA_MULTIZONE_ZONE_KDS_TLS_SKIP_VERIFY`) — it disables verification of
+   the KDS server entirely, not just the hostname check.
 
 4. **Move Global resources into the new store.** Export the Global-scoped
    resources identified in step 1 from the old Kubernetes-native Global CP
