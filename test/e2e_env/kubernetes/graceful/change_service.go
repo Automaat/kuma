@@ -53,7 +53,7 @@ func ChangeService() {
 						Name:        "main",
 						Port:        int32(80),
 						TargetPort:  intstr.FromString("main"),
-						AppProtocol: pointer.To("htt"),
+						AppProtocol: pointer.To("http"),
 					},
 				},
 				Selector: selector,
